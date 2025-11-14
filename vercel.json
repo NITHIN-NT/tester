@@ -4,7 +4,8 @@
       "src": "review_dashboard/wsgi.py",
       "use": "@vercel/python",
       "config": {
-        "maxLambdaSize": "15mb"
+        "maxLambdaSize": "15mb",
+        "buildCommand": "python manage.py collectstatic --noinput"
       }
     },
     {
