@@ -1,16 +1,13 @@
 {
   "builds": [
     {
-      "src": "review_dashboard/wsgi.py",
-      "use": "@vercel/python",
-      "config": {
-        "maxLambdaSize": "15mb",
-        "buildCommand": "python manage.py collectstatic --noinput"
-      }
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "staticfiles" }
     },
     {
-      "src": "staticfiles/**",
-      "use": "@vercel/static"
+      "src": "review_dashboard/wsgi.py",
+      "use": "@vercel/python"
     }
   ],
   "routes": [
