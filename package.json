@@ -1,7 +1,5 @@
 {
-  "scripts": {
-    "vercel-build": "python manage.py collectstatic --noinput"
-  },
+  "scripts": {},
   "dependencies": {
     "@vercel/speed-insights": "^1.2.0"
   }
