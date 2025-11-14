@@ -85,8 +85,8 @@ DATABASES = {
     }
 }
 
-# Set database path for Vercel
-if 'VERCEL' in os.environ:
+# Set database path for Vercel build environment
+if os.environ.get('CI') == 'true':
     DATABASES['default']['NAME'] = '/tmp/db.sqlite3'
 
 
