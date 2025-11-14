@@ -1,6 +1,6 @@
 {
   "scripts": {
-    "build": "python manage.py collectstatic --noinput"
+    "build": "pip install -r requirements.txt && python manage.py collectstatic --noinput"
   },
   "dependencies": {
     "@vercel/speed-insights": "^1.2.0"
