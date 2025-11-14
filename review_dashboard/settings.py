@@ -85,8 +85,9 @@ DATABASES = {
     }
 }
 
-# Set database path for Vercel build environment
-if os.environ.get('CI') == 'true':
+# Set database path for Vercel serverless environment
+# Vercel uses /tmp for writable files in serverless functions
+if os.environ.get('VERCEL') == '1' or os.environ.get('CI') == 'true':
     DATABASES['default']['NAME'] = '/tmp/db.sqlite3'
 
 
