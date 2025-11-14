@@ -27,62 +27,79 @@ def handler(request):
     Vercel serverless function handler.
     Converts Vercel request to WSGI and calls Django application.
     """
-    # Parse request - Vercel Python runtime provides request as dict or object
-    if isinstance(request, dict):
-        # Request is a dictionary (Vercel format)
-        method = request.get('method', 'GET')
-        path = request.get('path', '/')
+    # Vercel Python runtime provides request as an object with specific attributes
+    # Extract request details
+    method = getattr(request, 'method', 'GET')
+    
+    # Get headers first (needed for path extraction)
+    headers = {}
+    if hasattr(request, 'headers'):
+        headers = dict(request.headers) if hasattr(request.headers, 'items') else request.headers
+    elif hasattr(request, 'get'):
+        # If request is dict-like
         headers = request.get('headers', {})
-        body = request.get('body', b'')
-        if isinstance(body, str):
-            body = body.encode('utf-8')
-        query_string = request.get('queryStringParameters', {})
-        if query_string:
-            from urllib.parse import urlencode
-            query_string = urlencode(query_string)
-        else:
-            query_string = ''
-    else:
-        # Request is an object
-        # Parse request body
-        body = b''
-        if hasattr(request, 'body'):
-            if isinstance(request.body, bytes):
-                body = request.body
-            elif isinstance(request.body, str):
-                body = request.body.encode('utf-8')
-        
-        # Get query string from URL
-        query_string = ''
-        if hasattr(request, 'url'):
-            if hasattr(request.url, 'query'):
-                query_string = request.url.query or ''
-            elif '?' in str(request.url):
-                query_string = str(request.url).split('?', 1)[1]
-        
-        # Get path
-        path = '/'
-        if hasattr(request, 'path'):
-            path = request.path
+    
+    # Get path - Vercel provides this in the request
+    # The rewrite sends all requests to /api/index.py, but we need the original path
+    path = getattr(request, 'path', '/')
+    
+    # Vercel passes the original path in the request, but if it's /api/index.py, 
+    # we need to extract it from the URL or use a default
+    if path == '/api/index.py' or path == '/api' or not path or path == '':
+        # Try to get original path from various sources
+        # Check for x-vercel-rewrite-original-path or similar headers
+        original_path = (
+            headers.get('x-vercel-rewrite-original-path') or
+            headers.get('x-invoke-path') or
+            headers.get('x-original-path')
+        )
+        if original_path:
+            path = original_path
         elif hasattr(request, 'url'):
-            if hasattr(request.url, 'path'):
-                path = request.url.path
-            else:
-                url_str = str(request.url)
-                if '?' in url_str:
-                    path = url_str.split('?')[0]
-                else:
-                    path = url_str
-        
-        # Get headers
-        headers = {}
-        if hasattr(request, 'headers'):
-            headers = dict(request.headers)
-        
-        # Get method
-        method = 'GET'
-        if hasattr(request, 'method'):
-            method = request.method
+            # Extract from URL
+            from urllib.parse import urlparse
+            url_str = str(request.url)
+            parsed = urlparse(url_str)
+            path = parsed.path or '/'
+            # Remove /api/index.py if it's in the path
+            if path.startswith('/api/index.py'):
+                path = path[13:] or '/'  # Remove '/api/index.py' (13 chars)
+        else:
+            # Default to root if we can't determine
+            path = '/'
+    
+    # Ensure path starts with /
+    if not path or not path.startswith('/'):
+        path = '/' + (path if path else '')
+    
+    # Get query string
+    query_string = ''
+    if hasattr(request, 'query_string'):
+        query_string = request.query_string or ''
+    elif hasattr(request, 'queryStringParameters'):
+        # Vercel format
+        query_params = request.queryStringParameters or {}
+        if query_params:
+            from urllib.parse import urlencode
+            query_string = urlencode(query_params)
+    elif hasattr(request, 'url') and '?' in str(request.url):
+        query_string = str(request.url).split('?', 1)[1]
+    
+    # Get body
+    body = b''
+    if hasattr(request, 'body'):
+        req_body = request.body
+        if isinstance(req_body, bytes):
+            body = req_body
+        elif isinstance(req_body, str):
+            body = req_body.encode('utf-8')
+    elif hasattr(request, 'get'):
+        # If request is dict-like
+        req_body = request.get('body', '')
+        if isinstance(req_body, bytes):
+            body = req_body
+        elif isinstance(req_body, str):
+            body = req_body.encode('utf-8')
     
     # Convert Vercel request to WSGI environment
     host = headers.get('host', 'localhost')
