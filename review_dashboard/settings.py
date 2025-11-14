@@ -85,6 +85,11 @@ DATABASES = {
     }
 }
 
+# Set database path for Vercel
+if 'VERCEL' in os.environ:
+    DATABASES['default']['NAME'] = '/tmp/db.sqlite3'
+
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
